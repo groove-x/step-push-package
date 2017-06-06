@@ -1,0 +1,10 @@
+name: push-package
+version: 0.0.2
+description: push package
+properties:
+  repo_name:
+    type: string
+    required: true
+  path:
+    type: string
+    required: true
