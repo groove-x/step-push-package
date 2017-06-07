@@ -1,5 +1,5 @@
 name: push-package
-version: 0.0.2
+version: 0.0.3
 description: push package
 properties:
   repo_name:
@@ -8,3 +8,7 @@ properties:
   path:
     type: string
     required: true
+  token:
+    type: string
+    required: false
+    default: $PACKAGECLOUD_TOKEN
