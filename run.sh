@@ -23,6 +23,11 @@ delete_old () {
   endpoint="https://packagecloud.io/api/v1/repos/${USER_REPO}/package/deb/${DISTRO_VERSION}/${pkg_name}/${arch}/versions.json"
   res=`curl -u ${PACKAGECLOUD_TOKEN}: ${endpoint}`
 
+  old_vers_len=(`echo ${res} | jq "length"`)
+  if [ $old_vers_len -eq 0 ]; then
+      return
+  fi
+
   old_vers=(`echo ${res} | jq -r ".[].version"`)
   destroy_urls=(`echo ${res} | jq -r ".[].destroy_url"`)
 
