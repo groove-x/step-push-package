@@ -44,7 +44,7 @@ delete_old () {
 main () {
   install_jq
   extract_repo_name
-  for pkg in $(find ${WERCKER_PUSH_PACKAGE_PATH} -name "*.deb"); do
+  for pkg in $(find ${WERCKER_PUSH_PACKAGE_PATH} -name "*${WERCKER_PUSH_PACKAGE_ARCH}.deb"); do
     delete_old ${pkg}
     package_cloud push ${WERCKER_PUSH_PACKAGE_REPO_NAME} ${pkg}
   done
