@@ -44,13 +44,21 @@ delete_old () {
 main () {
   install_jq
   extract_repo_name
-  ARCH=`echo "${WERCKER_PUSH_PACKAGE_ARCH}" | sed -e 's/,/ /g'`
-  for arch_name in $ARCH; do
-    for pkg in $(find ${WERCKER_PUSH_PACKAGE_PATH} -name "*${arch_name}.deb"); do
-      delete_old ${pkg}
-      package_cloud push ${WERCKER_PUSH_PACKAGE_REPO_NAME} ${pkg}
+
+  if [ "${WERCKER_PUSH_PACKAGE_ARCH}" != "" ]
+  then
+    ARCH=`echo "${WERCKER_PUSH_PACKAGE_ARCH}" | sed -e 's/,/ /g'`
+    for arch_name in $ARCH; do
+      for pkg in $(find ${WERCKER_PUSH_PACKAGE_PATH} -name "*${arch_name}.deb"); do
+        delete_old ${pkg}
+        package_cloud push ${WERCKER_PUSH_PACKAGE_REPO_NAME} ${pkg}
+      done
     done
-  done
+  else
+    for pkg in $(find . -name "*.deb"); do
+      echo ${pkg}
+    done
+  fi
 }
 
 main
