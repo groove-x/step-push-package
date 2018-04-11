@@ -25,6 +25,17 @@ in_array() {
   return 1;
 }
 
+package_already_exists() {
+  version=`dpkg-deb -f ${1} Version`
+  pkg_name=`dpkg-deb -f ${1} Package`
+  arch=`dpkg-deb -f ${1} Architecture`
+
+  endpoint="https://packagecloud.io/api/v1/repos/${USER_REPO}/package/deb/${DISTRO_VERSION}/${pkg_name}/${arch}/${version}.json"
+  http_status=`curl -I -u ${PACKAGECLOUD_TOKEN}: ${endpoint} -o /dev/null -w '%{http_code}\n' -s`
+
+  test ${http_status} == "200"
+}
+
 delete_old () {
   version=`dpkg-deb -f ${1} Version`
   pkg_name=`dpkg-deb -f ${1} Package`
@@ -59,8 +70,12 @@ main () {
   for pkg in $(find ${WERCKER_PUSH_PACKAGE_PATH} -name "*${WERCKER_PUSH_PACKAGE_ARCH}.deb"); do
     pkg_filename=`basename ${pkg}`
     if ! in_array "${pkg_filename}" "${pkg_list[@]:-}"; then
-      delete_old ${pkg}
-      package_cloud push ${WERCKER_PUSH_PACKAGE_REPO_NAME} ${pkg}
+      if ! package_already_exists ${pkg}; then
+        delete_old ${pkg}
+        package_cloud push ${WERCKER_PUSH_PACKAGE_REPO_NAME} ${pkg}
+      else
+        echo "package already registered: ${pkg_filename}"
+      fi
     fi
     pkg_list+=($pkg_filename)
   done
