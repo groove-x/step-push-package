@@ -15,25 +15,26 @@ extract_repo_name () {
 }
 
 delete_old () {
-  version=`dpkg-deb -f ${1} Version`
+  pkg_filename=`basename -- ${1}`
+  pkg_version=`dpkg-deb -f ${1} Version`
   pkg_name=`dpkg-deb -f ${1} Package`
-  arch=`dpkg-deb -f ${1} Architecture`
-  base_version=`echo ${version} | cut -d '-' -f 1`
+  pkg_arch=`dpkg-deb -f ${1} Architecture`
+  pkg_base_version=`echo ${pkg_version} | cut -d '-' -f 1`
 
-  endpoint="https://packagecloud.io/api/v1/repos/${USER_REPO}/package/deb/${DISTRO_VERSION}/${pkg_name}/${arch}/versions.json"
+  endpoint="https://packagecloud.io/api/v1/repos/${USER_REPO}/package/deb/${DISTRO_VERSION}/${pkg_name}/${pkg_arch}/versions.json"
   res=`curl -u ${PACKAGECLOUD_TOKEN}: ${endpoint}`
 
-  old_vers_len=(`echo ${res} | jq "length"`)
-  if [ $old_vers_len -eq 0 ]; then
+  res_length=(`echo ${res} | jq "length"`)
+  if [ $res_length -eq 0 ]; then
       return
   fi
 
-  old_vers=(`echo ${res} | jq -r ".[].version"`)
+  versions=(`echo ${res} | jq -r ".[].version"`)
   destroy_urls=(`echo ${res} | jq -r ".[].destroy_url"`)
 
-  for idx in ${!old_vers[@]}
+  for idx in ${!versions[@]}
   do
-   if [[ ${old_vers[idx]} == ${base_version} ]]
+   if [[ ${versions[idx]} == ${pkg_base_version} ]]
    then
      echo destroy: https://packagecloud.io${destroy_urls[idx]}
      curl -u ${PACKAGECLOUD_TOKEN}: -X DELETE https://packagecloud.io${destroy_urls[idx]}
