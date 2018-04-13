@@ -14,6 +14,17 @@ extract_repo_name () {
   DISTRO_VERSION=${parts[2]}/${parts[3]}
 }
 
+in_array() {
+  local word=$1
+  shift
+  for e in "$@"; do
+    if [[ "$e" == "$word" ]]; then
+      return 0;
+    fi
+  done
+  return 1;
+}
+
 delete_old () {
   version=`dpkg-deb -f ${1} Version`
   pkg_name=`dpkg-deb -f ${1} Package`
@@ -44,9 +55,14 @@ delete_old () {
 main () {
   install_jq
   extract_repo_name
+  pkg_list=()
   for pkg in $(find ${WERCKER_PUSH_PACKAGE_PATH} -name "*${WERCKER_PUSH_PACKAGE_ARCH}.deb"); do
-    delete_old ${pkg}
-    package_cloud push ${WERCKER_PUSH_PACKAGE_REPO_NAME} ${pkg}
+    pkg_filename=`basename ${pkg}`
+    if ! in_array "${pkg_filename}" "${pkg_list[@]}"; then
+      delete_old ${pkg}
+      package_cloud push ${WERCKER_PUSH_PACKAGE_REPO_NAME} ${pkg}
+    fi
+    pkg_list+=($pkg_filename)
   done
 }
 
