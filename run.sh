@@ -44,7 +44,7 @@ delete_old () {
   pkg_base_version=`echo ${pkg_version} | cut -d '-' -f 1`
 
   endpoint="https://packagecloud.io/api/v1/repos/${USER_REPO}/package/deb/${DISTRO_VERSION}/${pkg_name}/${pkg_arch}/versions.json"
-  res=`curl -u ${PACKAGECLOUD_TOKEN}: ${endpoint}`
+  res=`curl -u ${PACKAGECLOUD_TOKEN}: ${endpoint} -s`
 
   res_length=(`echo ${res} | jq "length"`)
   if [ $res_length -eq 0 ]; then
@@ -52,15 +52,16 @@ delete_old () {
   fi
 
   versions=(`echo ${res} | jq -r ".[].version"`)
+  filenames=(`echo ${res} | jq -r ".[].filename"`)
   destroy_urls=(`echo ${res} | jq -r ".[].destroy_url"`)
 
   for idx in ${!versions[@]}
   do
-   if [[ ${versions[idx]} == ${pkg_base_version} ]]
-   then
-     echo destroy: https://packagecloud.io${destroy_urls[idx]}
-     curl -u ${PACKAGECLOUD_TOKEN}: -X DELETE https://packagecloud.io${destroy_urls[idx]}
-   fi
+    if [[ ${versions[idx]} == ${pkg_base_version} && ${filenames[idx]} != ${pkg_filename} ]]
+    then
+      echo destroy: https://packagecloud.io${destroy_urls[idx]}
+      curl -u ${PACKAGECLOUD_TOKEN}: -X DELETE https://packagecloud.io${destroy_urls[idx]}
+    fi
   done
 }
 
@@ -72,8 +73,10 @@ main () {
     pkg_filename=`basename ${pkg}`
     if ! in_array "${pkg_filename}" "${pkg_list[@]:-}"; then
       if ! package_already_exists ${pkg}; then
-        delete_old ${pkg}
         package_cloud push ${WERCKER_PUSH_PACKAGE_REPO_NAME} ${pkg}
+        if [[ "${WERCKER_PUSH_PACKAGE_DELETE_OLD}" != "false" ]]; then
+          delete_old ${pkg}
+        fi
       else
         echo "package already registered: ${pkg_filename}"
       fi
