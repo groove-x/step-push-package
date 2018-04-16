@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -eu
 
 export PACKAGECLOUD_TOKEN=${WERCKER_PUSH_PACKAGE_TOKEN}
 
@@ -58,7 +58,7 @@ main () {
   pkg_list=()
   for pkg in $(find ${WERCKER_PUSH_PACKAGE_PATH} -name "*${WERCKER_PUSH_PACKAGE_ARCH}.deb"); do
     pkg_filename=`basename ${pkg}`
-    if ! in_array "${pkg_filename}" "${pkg_list[@]}"; then
+    if ! in_array "${pkg_filename}" "${pkg_list[@]:-}"; then
       delete_old ${pkg}
       package_cloud push ${WERCKER_PUSH_PACKAGE_REPO_NAME} ${pkg}
     fi
