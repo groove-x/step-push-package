@@ -42,6 +42,7 @@ delete_old () {
   pkg_name=`dpkg-deb -f ${1} Package`
   pkg_arch=`dpkg-deb -f ${1} Architecture`
   pkg_base_version=`echo ${pkg_version} | cut -d '-' -f 1`
+  week_ago=`date -u -d '1 week ago' +"%Y-%m-%dT%H:%M:%S.000Z"`
 
   endpoint="https://packagecloud.io/api/v1/repos/${USER_REPO}/package/deb/${DISTRO_VERSION}/${pkg_name}/${pkg_arch}/versions.json"
   res=`curl -u ${PACKAGECLOUD_TOKEN}: ${endpoint} -s`
@@ -54,13 +55,17 @@ delete_old () {
   versions=(`echo ${res} | jq -r ".[].version"`)
   filenames=(`echo ${res} | jq -r ".[].filename"`)
   destroy_urls=(`echo ${res} | jq -r ".[].destroy_url"`)
+  created_ats=(`echo ${res} | jq -r ".[].created_at"`)
 
   for idx in ${!versions[@]}
   do
     if [[ ${versions[idx]} == ${pkg_base_version} && ${filenames[idx]} != ${pkg_filename} ]]
     then
-      echo destroy: https://packagecloud.io${destroy_urls[idx]}
-      curl -u ${PACKAGECLOUD_TOKEN}: -X DELETE https://packagecloud.io${destroy_urls[idx]}
+      if [[ ${created_ats[idx]} < ${week_ago} ]]
+         then
+           echo destroy: https://packagecloud.io${destroy_urls[idx]}
+           curl -u ${PACKAGECLOUD_TOKEN}: -X DELETE https://packagecloud.io${destroy_urls[idx]}
+      fi
     fi
   done
 }
@@ -74,7 +79,7 @@ main () {
     if ! in_array "${pkg_filename}" "${pkg_list[@]:-}"; then
       if ! package_already_exists ${pkg}; then
         package_cloud push ${WERCKER_PUSH_PACKAGE_REPO_NAME} ${pkg}
-        if [[ "${WERCKER_PUSH_PACKAGE_DELETE_OLD}" != "false" ]]; then
+        if [[ "${WERCKER_PUSH_PACKAGE_DELETE_OLD}" == "true" ]]; then
           delete_old ${pkg}
         fi
       else

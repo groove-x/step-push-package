@@ -1,5 +1,5 @@
 name: push-package
-version: 0.0.14
+version: 0.1.0
 description: push package
 properties:
   repo_name:
@@ -19,4 +19,4 @@ properties:
   delete_old:
     type: string
     required: false
-    default: "false"
+    default: "true"
